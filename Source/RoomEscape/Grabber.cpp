@@ -9,6 +9,7 @@
 
 #define OUT //for annotation only
 
+
 // Sets default values for this component's properties
 UGrabber::UGrabber()
 {
@@ -41,12 +42,13 @@ void UGrabber::BeginPlay()
 
 void UGrabber::Grab() {
 	//UE_LOG(LogTemp, Warning, TEXT("grab"))
-	FHitResult hitObject = RayCastObject();
-	auto componentToGrab = hitObject.GetComponent();
-	if(hitObject.GetActor())
-		physicsHandle->GrabComponentAtLocationWithRotation(componentToGrab, NAME_None, 
-		componentToGrab->GetOwner()->GetActorLocation(),
-		componentToGrab->GetOwner()->GetActorRotation());
+	FHitResult hitObject = RayCastObject().hitObject;
+	if (hitObject.GetActor()) {
+		auto componentToGrab = hitObject.GetComponent();
+		physicsHandle->GrabComponentAtLocationWithRotation(componentToGrab, NAME_None,
+			componentToGrab->GetOwner()->GetActorLocation(),
+			componentToGrab->GetOwner()->GetActorRotation());
+	}
 }
 
 void UGrabber::Released() {
@@ -57,16 +59,14 @@ void UGrabber::Released() {
 void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	FVector viewPointLocation;
-	FRotator viewPointRotation;
-	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(OUT viewPointLocation, OUT viewPointRotation);
-	FVector endLocation = viewPointLocation + viewPointRotation.Vector()*reach;
+	if (!physicsHandle) return;	
 	if (physicsHandle->GetGrabbedComponent()) {
+		FVector endLocation = RayCastObject().endLocation;
 		physicsHandle->SetTargetLocation(endLocation);
 	}
 }
 
-FHitResult UGrabber::RayCastObject () const
+LineTraceObjects UGrabber::RayCastObject () const
 {
 	FVector viewPointLocation;
 	FRotator viewPointRotation;
@@ -81,10 +81,10 @@ FHitResult UGrabber::RayCastObject () const
 	GetWorld()->LineTraceSingleByObjectType(OUT hit, viewPointLocation, endLocation,
 		FCollisionObjectQueryParams(ECollisionChannel::ECC_PhysicsBody),
 		queryParams);
-	AActor* actor = hit.GetActor();
+	/*AActor* actor = hit.GetActor();
 	if (actor) { //must check otherwise will crash engine
 		FName actorName = actor->GetFName();
 		UE_LOG(LogTemp, Warning, TEXT("%s"), *actorName.ToString())
-	}
-	return hit;
+	}*/
+	return { hit, endLocation };
 }

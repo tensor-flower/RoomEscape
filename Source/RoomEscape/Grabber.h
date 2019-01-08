@@ -8,6 +8,10 @@
 #include "Components/InputComponent.h"
 #include "Grabber.generated.h"
 
+struct LineTraceObjects {
+	FHitResult hitObject;
+	FVector endLocation;
+};
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class ROOMESCAPE_API UGrabber : public UActorComponent
@@ -32,5 +36,6 @@ private:
 	UInputComponent* inputComponent = nullptr;
 	void Grab();
 	void Released();
-	FHitResult RayCastObject() const;
+	//FHitResult RayCastObject() const;
+	LineTraceObjects RayCastObject() const;
 };
