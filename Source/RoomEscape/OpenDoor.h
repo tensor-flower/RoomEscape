@@ -32,5 +32,6 @@ private:
 	UPROPERTY(EditAnywhere) ATriggerVolume* pressurePlate;
 	UPROPERTY(EditAnywhere) float doorCloseDelay = 0.6f;
 	float lastDoorOpenTime;
-	AActor* actor;
+	float GetTotalMass();
+	float thresholdMass = 40.f;
 };
