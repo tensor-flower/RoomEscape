@@ -26,9 +26,7 @@ void UGrabber::BeginPlay()
 	Super::BeginPlay();	
 	physicsHandle = GetOwner()->FindComponentByClass<UPhysicsHandleComponent>();
 	inputComponent = GetOwner()->FindComponentByClass<UInputComponent>();
-	if (physicsHandle) {
-	}
-	else {
+	if (!physicsHandle) {
 		UE_LOG(LogTemp, Error, TEXT("%s missing physicsHandle"), *GetOwner()->GetFName().ToString())
 	}
 	if (inputComponent) {
@@ -45,6 +43,7 @@ void UGrabber::Grab() {
 	FHitResult hitObject = RayCastObject().hitObject;
 	if (hitObject.GetActor()) {
 		auto componentToGrab = hitObject.GetComponent();
+		if (!physicsHandle) return;
 		physicsHandle->GrabComponentAtLocationWithRotation(componentToGrab, NAME_None,
 			componentToGrab->GetOwner()->GetActorLocation(),
 			componentToGrab->GetOwner()->GetActorRotation());
@@ -53,6 +52,7 @@ void UGrabber::Grab() {
 
 void UGrabber::Released() {
 	//UE_LOG(LogTemp, Warning, TEXT("released"))
+	if (!physicsHandle) return;
 	physicsHandle->ReleaseComponent();
 }
 

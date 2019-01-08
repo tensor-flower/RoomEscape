@@ -23,31 +23,29 @@ UOpenDoor::UOpenDoor()
 void UOpenDoor::BeginPlay()
 {
 	Super::BeginPlay();	
-	CloseDoor();
+	if (!pressurePlate) {
+		UE_LOG(LogTemp, Error, TEXT("%s missing pressurePlate"), *GetOwner()->GetFName().ToString())
+	}
 }
 
-void UOpenDoor::OpenDoor()
-{
-	GetOwner()->SetActorRotation(FRotator(0.f, openAngle, 0.f));
-}
 
-void UOpenDoor::CloseDoor()
-{
-	GetOwner()->SetActorRotation(FRotator(0.f, 0.f, 0.f));
-}
 
 
 // Called every frame
 void UOpenDoor::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	if (pressurePlate && GetTotalMass()>thresholdMass) {
-		OpenDoor();
-		lastDoorOpenTime = GetWorld()->GetTimeSeconds();
+	if (!pressurePlate) return;
+	if (GetTotalMass()>thresholdMass) {
+		OnOpenRequest.Broadcast();
+		//lastDoorOpenTime = GetWorld()->GetTimeSeconds();
 	}
-	if (GetWorld()->GetTimeSeconds() > lastDoorOpenTime + doorCloseDelay) {
-		CloseDoor();
+	//if (GetWorld()->GetTimeSeconds() > lastDoorOpenTime + doorCloseDelay) {
+		//CloseDoor();
+	//}
+	else {
+		//CloseDoor();
+		OnCloseRequest.Broadcast();
 	}
 }
 
@@ -58,7 +56,7 @@ float UOpenDoor::GetTotalMass() {
 	for (const auto* actor : overlappingActors) {			
 		totalMass += actor->FindComponentByClass<UPrimitiveComponent>()->GetMass();
 		FName name = actor->GetOwner()->GetFName();
-		UE_LOG(LogTemp, Warning, TEXT("Actor's FName is %s"), *actor->GetName())
+		//UE_LOG(LogTemp, Warning, TEXT("Actor's FName is %s"), *actor->GetName())
 	}
 
 	return totalMass;
