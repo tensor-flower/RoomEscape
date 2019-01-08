@@ -5,6 +5,7 @@
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
 #include "DrawDebugHelpers.h"
+#include "Components/PrimitiveComponent.h"
 
 #define OUT //for annotation only
 
@@ -19,25 +20,65 @@ UGrabber::UGrabber()
 }
 
 
-// Called when the game starts
 void UGrabber::BeginPlay()
 {
 	Super::BeginPlay();	
+	physicsHandle = GetOwner()->FindComponentByClass<UPhysicsHandleComponent>();
+	inputComponent = GetOwner()->FindComponentByClass<UInputComponent>();
+	if (physicsHandle) {
+	}
+	else {
+		UE_LOG(LogTemp, Error, TEXT("%s missing physicsHandle"), *GetOwner()->GetFName().ToString())
+	}
+	if (inputComponent) {
+		inputComponent->BindAction("Grab", IE_Pressed, this, &UGrabber::Grab);
+		inputComponent->BindAction("Grab", IE_Released, this, &UGrabber::Released);
+	}
+	else {
+		UE_LOG(LogTemp, Error, TEXT("%s missing inputComponent"), *GetOwner()->GetFName().ToString())
+	}
 }
 
+void UGrabber::Grab() {
+	//UE_LOG(LogTemp, Warning, TEXT("grab"))
+	FHitResult hitObject = RayCastObject();
+	auto componentToGrab = hitObject.GetComponent();
+	if(hitObject.GetActor())
+		physicsHandle->GrabComponentAtLocationWithRotation(componentToGrab, NAME_None, 
+		componentToGrab->GetOwner()->GetActorLocation(),
+		componentToGrab->GetOwner()->GetActorRotation());
+}
 
-// Called every frame
+void UGrabber::Released() {
+	//UE_LOG(LogTemp, Warning, TEXT("released"))
+	physicsHandle->ReleaseComponent();
+}
+
 void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	FVector viewPointLocation;
+	FRotator viewPointRotation;
+	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(OUT viewPointLocation, OUT viewPointRotation);
+	FVector endLocation = viewPointLocation + viewPointRotation.Vector()*reach;
+	if (physicsHandle->GetGrabbedComponent()) {
+		physicsHandle->SetTargetLocation(endLocation);
+	}
+}
+
+FHitResult UGrabber::RayCastObject () const
+{
+	FVector viewPointLocation;
+	FRotator viewPointRotation;
 	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(OUT viewPointLocation, OUT viewPointRotation);
 	/*UE_LOG(LogTemp, Warning, TEXT("%s %s"), *viewPointLocation.ToString(), *viewPointRotation.ToString())*/
-	DrawDebugLine(GetWorld(), viewPointLocation, viewPointLocation + viewPointRotation.Vector()*reach, FColor(255, 0, 0),
+	/*DrawDebugLine(GetWorld(), viewPointLocation, viewPointLocation + viewPointRotation.Vector()*reach, FColor(255, 0, 0),
 		false, -1, 0,
-		12.333);
+		12.333);*/
 	FCollisionQueryParams queryParams(FName(TEXT("")), false, GetOwner());
 	FHitResult hit;
-	GetWorld()->LineTraceSingleByObjectType(OUT hit, viewPointLocation, viewPointLocation + viewPointRotation.Vector()*reach,
+	FVector endLocation = viewPointLocation + viewPointRotation.Vector()*reach;
+	GetWorld()->LineTraceSingleByObjectType(OUT hit, viewPointLocation, endLocation,
 		FCollisionObjectQueryParams(ECollisionChannel::ECC_PhysicsBody),
 		queryParams);
 	AActor* actor = hit.GetActor();
@@ -45,5 +86,5 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 		FName actorName = actor->GetFName();
 		UE_LOG(LogTemp, Warning, TEXT("%s"), *actorName.ToString())
 	}
+	return hit;
 }
-
